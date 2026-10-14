@@ -50,4 +50,24 @@ public class CalculatorModel {
         stack.push(first);
         stack.push(second);
     }
+        public double add(double valA,double valB){
+        this.accumulator = valA + valB;
+        return (valA + valB);
+    }
+    public double subtraction(double valA,double valB){
+        this.accumulator = valA - valB;
+        return (valA - valB);
+    }
+    public double multiplication(double valA,double valB){
+        this.accumulator = valA * valB;
+        return (valA * valB);
+    }
+    public double division(double valA,double valB){
+        this.accumulator = valA / valB;
+        return (valA / valB);
+    }
+    public double oposite(){
+        return -this.accumulator;
+    }
+    
 }
