@@ -1,5 +1,19 @@
+import model.CalculatorModel;
+
 public class App {
     public static void main(String[] args) throws Exception {
-        System.out.println("Hello, World!");
+        CalculatorModel calc = new CalculatorModel();
+        calc.push();
+
+        calc.setAccumulator(5);
+        calc.push();
+
+        calc.setAccumulator(2);
+        calc.push();
+
+        calc.pop();
+        calc.pop();
+
+        System.out.println(calc.getAccumulator());
     }
 }
