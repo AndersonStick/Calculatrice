@@ -20,4 +20,12 @@ public interface CalculatorModelInterface {
     void dropAll();
 
     void swap();
+
+    double add(double valA,double valB);
+
+    double subtraction(double valA,double valB);
+    
+    double multiplication(double valA,double valB);
+    
+    double division(double valA,double valB);
 }
