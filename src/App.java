@@ -11,8 +11,7 @@ public class App {
         calc.setAccumulator(2);
         calc.push();
 
-        calc.pop();
-        calc.pop();
+
 
         System.out.println(calc.getAccumulator());
     }
