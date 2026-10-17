@@ -1,18 +1,14 @@
-import model.CalculatorModel;
+import controller.CalculatorController;
+import view.CalculatorView;
+
+import javax.swing.SwingUtilities;
 
 public class App {
-    public static void main(String[] args) throws Exception {
-        CalculatorModel calc = new CalculatorModel();
-        calc.push();
-
-        calc.setAccumulator(5);
-        calc.push();
-
-        calc.setAccumulator(2);
-        calc.push();
-
-
-
-        System.out.println(calc.getAccumulator());
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            CalculatorView view = new CalculatorView();
+            new CalculatorController(view);
+            view.setVisible(true);
+        });
     }
 }

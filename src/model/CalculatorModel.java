@@ -69,5 +69,5 @@ public class CalculatorModel {
     public double oposite(){
         return -this.accumulator;
     }
-    
+
 }
