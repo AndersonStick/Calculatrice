@@ -1,13 +1,19 @@
 package model;
 
-import java.util.Stack;
+import java.util.List;
+
+import controller.CalculatorControllerInterface;
 
 public interface CalculatorModelInterface {
+    /** Registers the controller that receives state-change callbacks. */
+    void setController(CalculatorControllerInterface controller);
+
     void setAccumulator(double value);
 
     double getAccumulator();
 
-    Stack<Double> getStack();
+    /** Returns a bottom-to-top snapshot of the stack. */
+    List<Double> getStackData();
 
     void push();
 
@@ -21,11 +27,13 @@ public interface CalculatorModelInterface {
 
     void swap();
 
-    double add(double valA,double valB);
+    void add();
 
-    double subtraction(double valA,double valB);
-    
-    double multiplication(double valA,double valB);
-    
-    double division(double valA,double valB);
+    void subtract();
+
+    void multiply();
+
+    void divide();
+
+    void opposite();
 }
