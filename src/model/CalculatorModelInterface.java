@@ -1,13 +1,13 @@
 package model;
 
-import java.util.Stack;
+import java.util.List;
 
 public interface CalculatorModelInterface {
     void setAccumulator(double value);
 
     double getAccumulator();
 
-    Stack<Double> getStack();
+    List<Double> getStackData();
 
     void push();
 
@@ -21,11 +21,13 @@ public interface CalculatorModelInterface {
 
     void swap();
 
-    double add(double valA,double valB);
+    void add();
 
-    double subtraction(double valA,double valB);
-    
-    double multiplication(double valA,double valB);
-    
-    double division(double valA,double valB);
+    void subtract();
+
+    void multiply();
+
+    void divide();
+
+    void opposite();
 }

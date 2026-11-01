@@ -16,20 +16,24 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.math.BigDecimal;
+import java.util.List;
 
-/** Standard infix calculator view. It forwards input events to the controller. */
+/** RPN calculator view with an accumulator and four visible stack slots. */
 public final class CalculatorView extends JFrame {
     public enum Command {
-        OPEN_PARENTHESIS,
-        CLOSE_PARENTHESIS,
+        PUSH,
+        POP,
+        DROP,
+        DROP_ALL,
+        SWAP,
+        CLEAR_ACCUMULATOR,
+        BACKSPACE,
+        OPPOSITE,
         ADD,
         SUBTRACT,
         MULTIPLY,
-        DIVIDE,
-        BACKSPACE,
-        CLEAR_ENTRY,
-        CLEAR_ALL,
-        EQUALS
+        DIVIDE
     }
 
     public interface Listener {
@@ -40,15 +44,17 @@ public final class CalculatorView extends JFrame {
         void onCommand(Command command);
     }
 
-    private final JTextField expressionDisplay = new JTextField("0");
-    private final JTextField resultDisplay = new JTextField("0");
+    private final JTextField accumulatorDisplay = valueDisplay(true);
+    private final JTextField[] stackDisplays = {
+            valueDisplay(false), valueDisplay(false), valueDisplay(false), valueDisplay(false)
+    };
     private final JLabel statusLabel = new JLabel(" ");
     private Listener listener;
 
     public CalculatorView() {
-        super("Calculator");
+        super("RPN Calculator");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(360, 550));
+        setMinimumSize(new Dimension(390, 650));
         buildInterface();
         installKeyboardShortcuts();
         pack();
@@ -59,9 +65,13 @@ public final class CalculatorView extends JFrame {
         this.listener = listener;
     }
 
-    public void showState(String expression, String result, String message, boolean error) {
-        expressionDisplay.setText(expression == null || expression.isEmpty() ? "0" : expression);
-        resultDisplay.setText(result == null || result.isEmpty() ? "0" : result);
+    public void showState(String accumulator, List<Double> stackData, String message, boolean error) {
+        accumulatorDisplay.setText(accumulator == null || accumulator.isEmpty() ? "0" : accumulator);
+        for (int slot = 0; slot < stackDisplays.length; slot++) {
+            int stackIndex = stackData.size() - 1 - slot;
+            String value = stackIndex >= 0 ? formatNumber(stackData.get(stackIndex)) : "";
+            stackDisplays[slot].setText(value);
+        }
         statusLabel.setText(message == null || message.isEmpty() ? " " : message);
         statusLabel.setForeground(error ? new Color(170, 35, 35) : new Color(75, 75, 75));
     }
@@ -70,87 +80,83 @@ public final class CalculatorView extends JFrame {
         JPanel root = new JPanel(new BorderLayout(9, 9));
         root.setBorder(BorderFactory.createEmptyBorder(14, 14, 12, 14));
 
-        JPanel displayPanel = new JPanel(new GridLayout(2, 1, 4, 4));
-        JLabel expressionLabel = new JLabel("EXPRESSION");
-        expressionLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
-        expressionDisplay.setEditable(false);
-        expressionDisplay.setFocusable(false);
-        expressionDisplay.setHorizontalAlignment(JTextField.RIGHT);
-        expressionDisplay.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
-        expressionDisplay.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(190, 195, 202)),
-                BorderFactory.createEmptyBorder(7, 9, 7, 9)));
+        JPanel registers = new JPanel(new GridLayout(5, 1, 5, 5));
+        registers.add(registerRow("ACCUMULATOR", accumulatorDisplay));
+        registers.add(registerRow("STACK 1 (TOP)", stackDisplays[0]));
+        registers.add(registerRow("STACK 2", stackDisplays[1]));
+        registers.add(registerRow("STACK 3", stackDisplays[2]));
+        registers.add(registerRow("STACK 4", stackDisplays[3]));
 
-        JLabel resultLabel = new JLabel("RESULT");
-        resultLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
-        resultDisplay.setEditable(false);
-        resultDisplay.setFocusable(false);
-        resultDisplay.setHorizontalAlignment(JTextField.RIGHT);
-        resultDisplay.setFont(new Font(Font.MONOSPACED, Font.BOLD, 32));
-        resultDisplay.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(150, 165, 185)),
-                BorderFactory.createEmptyBorder(8, 9, 8, 9)));
-
-        JPanel expressions = new JPanel(new BorderLayout(3, 3));
-        expressions.add(expressionLabel, BorderLayout.NORTH);
-        expressions.add(expressionDisplay, BorderLayout.CENTER);
-        JPanel result = new JPanel(new BorderLayout(3, 3));
-        result.add(resultLabel, BorderLayout.NORTH);
-        result.add(resultDisplay, BorderLayout.CENTER);
-        displayPanel.add(expressions);
-        displayPanel.add(result);
-
-        JPanel keypad = new JPanel(new GridLayout(5, 4, 7, 7));
-        keypad.add(commandButton("(", "Open parenthesis", Command.OPEN_PARENTHESIS));
-        keypad.add(commandButton(")", "Close parenthesis", Command.CLOSE_PARENTHESIS));
-        keypad.add(commandButton("⌫", "Delete the last character", Command.BACKSPACE));
-        keypad.add(commandButton("C", "Clear the expression and result", Command.CLEAR_ALL));
-
+        JPanel keypad = new JPanel(new GridLayout(4, 4, 7, 7));
         addDigitButton(keypad, "7");
         addDigitButton(keypad, "8");
         addDigitButton(keypad, "9");
-        keypad.add(commandButton("÷", "Division", Command.DIVIDE));
+        keypad.add(commandButton("÷", "Divide", Command.DIVIDE));
 
         addDigitButton(keypad, "4");
         addDigitButton(keypad, "5");
         addDigitButton(keypad, "6");
-        keypad.add(commandButton("×", "Multiplication", Command.MULTIPLY));
+        keypad.add(commandButton("×", "Multiply", Command.MULTIPLY));
 
         addDigitButton(keypad, "1");
         addDigitButton(keypad, "2");
         addDigitButton(keypad, "3");
-        keypad.add(commandButton("−", "Subtraction", Command.SUBTRACT));
+        keypad.add(commandButton("−", "Subtract", Command.SUBTRACT));
 
-        keypad.add(commandButton("CE", "Clear the current number", Command.CLEAR_ENTRY));
+        keypad.add(commandButton("±", "Change the sign", Command.OPPOSITE));
         addDigitButton(keypad, "0");
         JButton decimalButton = new JButton(",");
         styleButton(decimalButton);
         decimalButton.setToolTipText("Decimal separator");
         decimalButton.addActionListener(event -> fireDecimalSeparator());
         keypad.add(decimalButton);
-        keypad.add(commandButton("+", "Addition", Command.ADD));
+        keypad.add(commandButton("+", "Add", Command.ADD));
 
-        JButton equalsButton = commandButton("=", "Evaluate the expression", Command.EQUALS);
-        equalsButton.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 23));
-        equalsButton.setBackground(new Color(47, 105, 170));
-        equalsButton.setForeground(Color.WHITE);
-        equalsButton.setOpaque(true);
-        equalsButton.setBorderPainted(false);
+        JPanel stackControls = new JPanel(new GridLayout(2, 4, 7, 7));
+        stackControls.add(commandButton("ENTER", "Push the accumulator onto the stack", Command.PUSH));
+        stackControls.add(commandButton("POP", "Move the top stack value to the accumulator", Command.POP));
+        stackControls.add(commandButton("DROP", "Remove the top stack value", Command.DROP));
+        stackControls.add(commandButton("SWAP", "Swap the top two stack values", Command.SWAP));
+        stackControls.add(commandButton("DROP ALL", "Clear the stack", Command.DROP_ALL));
+        stackControls.add(commandButton("AC", "Clear the accumulator", Command.CLEAR_ACCUMULATOR));
+        stackControls.add(commandButton("⌫", "Delete the last entered digit", Command.BACKSPACE));
 
-        statusLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 0, 2));
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(3, 2, 0, 2));
         statusLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
 
         JPanel bottom = new JPanel(new BorderLayout(7, 7));
-        bottom.add(equalsButton, BorderLayout.CENTER);
+        bottom.add(stackControls, BorderLayout.CENTER);
         bottom.add(statusLabel, BorderLayout.SOUTH);
 
-        JPanel center = new JPanel(new BorderLayout(7, 7));
-        center.add(keypad, BorderLayout.CENTER);
-        center.add(bottom, BorderLayout.SOUTH);
+        JPanel calculator = new JPanel(new BorderLayout(7, 7));
+        calculator.add(keypad, BorderLayout.CENTER);
+        calculator.add(bottom, BorderLayout.SOUTH);
 
-        root.add(displayPanel, BorderLayout.NORTH);
-        root.add(center, BorderLayout.CENTER);
+        root.add(registers, BorderLayout.NORTH);
+        root.add(calculator, BorderLayout.CENTER);
         setContentPane(root);
+    }
+
+    private JPanel registerRow(String labelText, JTextField display) {
+        JPanel row = new JPanel(new BorderLayout(8, 3));
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
+        label.setPreferredSize(new Dimension(118, 32));
+        row.add(label, BorderLayout.WEST);
+        row.add(display, BorderLayout.CENTER);
+        return row;
+    }
+
+    private JTextField valueDisplay(boolean emphasized) {
+        JTextField display = new JTextField("0");
+        display.setEditable(false);
+        display.setFocusable(false);
+        display.setHorizontalAlignment(JTextField.RIGHT);
+        display.setFont(new Font(Font.MONOSPACED, emphasized ? Font.BOLD : Font.PLAIN, emphasized ? 26 : 20));
+        display.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(emphasized ? new Color(150, 165, 185) : new Color(190, 195, 202)),
+                BorderFactory.createEmptyBorder(5, 9, 5, 9)));
+        return display;
     }
 
     private JButton commandButton(String text, String tooltip, Command command) {
@@ -169,7 +175,7 @@ public final class CalculatorView extends JFrame {
     }
 
     private void styleButton(JButton button) {
-        button.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 18));
+        button.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 17));
         button.setFocusable(false);
     }
 
@@ -184,12 +190,10 @@ public final class CalculatorView extends JFrame {
         bindKey(KeyStroke.getKeyStroke('-'), "subtract", () -> fireCommand(Command.SUBTRACT));
         bindKey(KeyStroke.getKeyStroke('*'), "multiply", () -> fireCommand(Command.MULTIPLY));
         bindKey(KeyStroke.getKeyStroke('/'), "divide", () -> fireCommand(Command.DIVIDE));
-        bindKey(KeyStroke.getKeyStroke('('), "open-parenthesis", () -> fireCommand(Command.OPEN_PARENTHESIS));
-        bindKey(KeyStroke.getKeyStroke(')'), "close-parenthesis", () -> fireCommand(Command.CLOSE_PARENTHESIS));
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "equals", () -> fireCommand(Command.EQUALS));
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "push", () -> fireCommand(Command.PUSH));
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "backspace", () -> fireCommand(Command.BACKSPACE));
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "clear-entry", () -> fireCommand(Command.CLEAR_ENTRY));
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "clear-all", () -> fireCommand(Command.CLEAR_ALL));
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "clear-accumulator", () -> fireCommand(Command.CLEAR_ACCUMULATOR));
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "drop-all", () -> fireCommand(Command.DROP_ALL));
     }
 
     private void bindKey(KeyStroke key, String name, Runnable action) {
@@ -218,5 +222,9 @@ public final class CalculatorView extends JFrame {
         if (listener != null) {
             listener.onCommand(command);
         }
+    }
+
+    private String formatNumber(double value) {
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 }
