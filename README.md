@@ -1,18 +1,33 @@
-## Getting Started
+# RPN Calculator
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+A Java Swing calculator built with a model-view-controller structure. It uses reverse Polish notation (RPN): enter values first, then choose an operation.
 
-## Folder Structure
+## Run the application
 
-The workspace contains two folders by default, where:
+Open the project in Visual Studio Code and run `src/App.java`, or compile and run it from PowerShell:
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+```powershell
+javac -encoding UTF-8 -d bin src\App.java src\controller\CalculatorController.java src\controller\CalculatorControllerInterface.java src\model\CalculatorModel.java src\model\CalculatorModelInterface.java src\view\CalculatorView.java
+java -cp bin App
+```
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+## Use the calculator
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+For example, to calculate `3 - 1`:
 
-## Dependency Management
+1. Enter `3` and press **ENTER**.
+2. Enter `1`.
+3. Press **−**. The accumulator displays `2`.
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+The display contains the accumulator and the four newest values on the stack. **STACK 1 (TOP)** is the next stack value used by an operation. Older values remain in the model even when they are outside the four visible slots.
+
+The stack controls are **ENTER** (push), **POP**, **DROP**, **SWAP**, and **DROP ALL**. **AC** clears the accumulator; **C** clears both the accumulator and the stack. Keyboard shortcuts are available for digits, decimal separator, arithmetic, **ENTER**, backspace, **AC**, and **C**.
+
+## Project structure
+
+- `src/model`: calculator state and RPN operations
+- `src/controller`: input handling and model-to-view updates
+- `src/view`: Swing interface
+- `src/App.java`: application entry point
+
+Compiled `.class` files are generated in `bin` and are not source files.

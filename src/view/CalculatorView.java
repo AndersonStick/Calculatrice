@@ -1,14 +1,5 @@
 package view;
 
-import javax.swing.AbstractAction;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -19,8 +10,20 @@ import java.awt.event.KeyEvent;
 import java.math.BigDecimal;
 import java.util.List;
 
+import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+
 /** RPN calculator view with an accumulator and four visible stack slots. */
 public final class CalculatorView extends JFrame {
+    private static final long serialVersionUID = 1L;
+
     public enum Command {
         PUSH,
         POP,
@@ -28,6 +31,7 @@ public final class CalculatorView extends JFrame {
         DROP_ALL,
         SWAP,
         CLEAR_ACCUMULATOR,
+        CLEAR_ALL,
         BACKSPACE,
         OPPOSITE,
         ADD,
@@ -44,15 +48,18 @@ public final class CalculatorView extends JFrame {
         void onCommand(Command command);
     }
 
-    private final JTextField accumulatorDisplay = valueDisplay(true);
-    private final JTextField[] stackDisplays = {
-            valueDisplay(false), valueDisplay(false), valueDisplay(false), valueDisplay(false)
-    };
+    private final JTextField accumulatorDisplay;
+    private final JTextField[] stackDisplays;
     private final JLabel statusLabel = new JLabel(" ");
     private Listener listener;
 
     public CalculatorView() {
         super("RPN Calculator");
+        accumulatorDisplay = createValueDisplay(true);
+        stackDisplays = new JTextField[]{
+                createValueDisplay(false), createValueDisplay(false),
+                createValueDisplay(false), createValueDisplay(false)
+        };
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(390, 650));
         buildInterface();
@@ -103,7 +110,7 @@ public final class CalculatorView extends JFrame {
         addDigitButton(keypad, "3");
         keypad.add(commandButton("−", "Subtract", Command.SUBTRACT));
 
-        keypad.add(commandButton("±", "Change the sign", Command.OPPOSITE));
+        keypad.add(commandButton("⌫", "Delete the last entered digit", Command.BACKSPACE));
         addDigitButton(keypad, "0");
         JButton decimalButton = new JButton(",");
         styleButton(decimalButton);
@@ -119,7 +126,8 @@ public final class CalculatorView extends JFrame {
         stackControls.add(commandButton("SWAP", "Swap the top two stack values", Command.SWAP));
         stackControls.add(commandButton("DROP ALL", "Clear the stack", Command.DROP_ALL));
         stackControls.add(commandButton("AC", "Clear the accumulator", Command.CLEAR_ACCUMULATOR));
-        stackControls.add(commandButton("⌫", "Delete the last entered digit", Command.BACKSPACE));
+        stackControls.add(commandButton("±", "Change the sign", Command.OPPOSITE));
+        stackControls.add(commandButton("C", "Clear the accumulator and stack", Command.CLEAR_ALL));
 
         statusLabel.setBorder(BorderFactory.createEmptyBorder(3, 2, 0, 2));
         statusLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
@@ -147,7 +155,7 @@ public final class CalculatorView extends JFrame {
         return row;
     }
 
-    private JTextField valueDisplay(boolean emphasized) {
+    private static JTextField createValueDisplay(boolean emphasized) {
         JTextField display = new JTextField("0");
         display.setEditable(false);
         display.setFocusable(false);
@@ -174,7 +182,7 @@ public final class CalculatorView extends JFrame {
         keypad.add(button);
     }
 
-    private void styleButton(JButton button) {
+    private static void styleButton(JButton button) {
         button.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 17));
         button.setFocusable(false);
     }
@@ -193,12 +201,14 @@ public final class CalculatorView extends JFrame {
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "push", () -> fireCommand(Command.PUSH));
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "backspace", () -> fireCommand(Command.BACKSPACE));
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "clear-accumulator", () -> fireCommand(Command.CLEAR_ACCUMULATOR));
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "drop-all", () -> fireCommand(Command.DROP_ALL));
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "clear-all", () -> fireCommand(Command.CLEAR_ALL));
     }
 
     private void bindKey(KeyStroke key, String name, Runnable action) {
         getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(key, name);
         getRootPane().getActionMap().put(name, new AbstractAction() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public void actionPerformed(ActionEvent event) {
                 action.run();
@@ -224,7 +234,7 @@ public final class CalculatorView extends JFrame {
         }
     }
 
-    private String formatNumber(double value) {
+    private static String formatNumber(double value) {
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 }

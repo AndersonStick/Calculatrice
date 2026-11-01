@@ -1,19 +1,23 @@
 package model;
 
-import controller.CalculatorControllerInterface;
-
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Stack;
 import java.util.function.DoubleBinaryOperator;
 
+import controller.CalculatorControllerInterface;
+
 /** RPN calculator model with an accumulator and an operand stack. */
-public class CalculatorModel implements CalculatorModelInterface {
+public final class CalculatorModel implements CalculatorModelInterface {
+    private final Deque<Double> stack = new ArrayDeque<>();
+
     private double accumulator;
     private boolean accumulatorFilled;
-    private final Stack<Double> memory = new Stack<>();
     private CalculatorControllerInterface controller;
 
+    @Override
     public void setController(CalculatorControllerInterface controller) {
         this.controller = controller;
         notifyChange();
@@ -21,6 +25,9 @@ public class CalculatorModel implements CalculatorModelInterface {
 
     @Override
     public void setAccumulator(double value) {
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("The accumulator must contain a finite number.");
+        }
         accumulator = value;
         accumulatorFilled = true;
         notifyChange();
@@ -33,19 +40,21 @@ public class CalculatorModel implements CalculatorModelInterface {
 
     @Override
     public List<Double> getStackData() {
-        return new ArrayList<>(memory);
+        return new ArrayList<>(stack);
     }
 
     @Override
     public void push() {
-        memory.push(accumulator);
-        clear();
+        stack.addLast(accumulator);
+        accumulator = 0;
+        accumulatorFilled = false;
+        notifyChange();
     }
 
     @Override
     public void pop() {
         requireOperands(1);
-        accumulator = memory.pop();
+        accumulator = stack.removeLast();
         accumulatorFilled = true;
         notifyChange();
     }
@@ -60,23 +69,23 @@ public class CalculatorModel implements CalculatorModelInterface {
     @Override
     public void drop() {
         requireOperands(1);
-        memory.pop();
+        stack.removeLast();
         notifyChange();
     }
 
     @Override
     public void dropAll() {
-        memory.clear();
+        stack.clear();
         notifyChange();
     }
 
     @Override
     public void swap() {
         requireOperands(2);
-        double top = memory.pop();
-        double second = memory.pop();
-        memory.push(top);
-        memory.push(second);
+        double top = stack.removeLast();
+        double belowTop = stack.removeLast();
+        stack.addLast(top);
+        stack.addLast(belowTop);
         notifyChange();
     }
 
@@ -99,7 +108,7 @@ public class CalculatorModel implements CalculatorModelInterface {
     public void divide() {
         applyBinary((left, right) -> {
             if (right == 0) {
-                throw new ArithmeticException("Division by zero");
+                throw new ArithmeticException("Division by zero.");
             }
             return left / right;
         });
@@ -111,19 +120,23 @@ public class CalculatorModel implements CalculatorModelInterface {
         notifyChange();
     }
 
-    /** Uses the accumulator and one stacked value, or pops two stacked values. */
+    /** Applies an operation to the accumulator and stack without losing operands on failure. */
     private void applyBinary(DoubleBinaryOperator operation) {
         boolean useAccumulator = accumulatorFilled;
         int operandCount = useAccumulator ? 1 : 2;
         requireOperands(operandCount);
 
-        int topIndex = memory.size() - 1;
-        double right = useAccumulator ? accumulator : memory.get(topIndex);
-        double left = useAccumulator ? memory.get(topIndex) : memory.get(topIndex - 1);
+        Iterator<Double> topDown = stack.descendingIterator();
+        double top = topDown.next();
+        double right = useAccumulator ? accumulator : top;
+        double left = useAccumulator ? top : topDown.next();
         double result = operation.applyAsDouble(left, right);
+        if (!Double.isFinite(result)) {
+            throw new ArithmeticException("The result is not a finite number.");
+        }
 
         for (int i = 0; i < operandCount; i++) {
-            memory.pop();
+            stack.removeLast();
         }
         accumulator = result;
         accumulatorFilled = true;
@@ -131,14 +144,14 @@ public class CalculatorModel implements CalculatorModelInterface {
     }
 
     private void requireOperands(int count) {
-        if (memory.size() < count) {
-            throw new IllegalStateException("Not enough operands on the stack");
+        if (stack.size() < count) {
+            throw new IllegalStateException("Not enough operands on the stack.");
         }
     }
 
     private void notifyChange() {
         if (controller != null) {
-            controller.change(String.valueOf(accumulator), getStackData());
+            controller.change(accumulator, getStackData());
         }
     }
 }
