@@ -7,7 +7,7 @@ A Java Swing calculator built with a model-view-controller structure. It uses re
 Open the project in Visual Studio Code and run `src/App.java`, or compile and run it from PowerShell:
 
 ```powershell
-javac -encoding UTF-8 -d bin src\App.java src\controller\CalculatorController.java src\controller\CalculatorControllerInterface.java src\model\CalculatorModel.java src\model\CalculatorModelInterface.java src\view\CalculatorView.java
+javac -d bin -cp src (Get-ChildItem -Recurse -Filter *.java src).FullName
 java -cp bin App
 ```
 
