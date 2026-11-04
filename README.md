@@ -1,33 +1,117 @@
 # RPN Calculator
 
-A Java Swing calculator built with a model-view-controller structure. It uses reverse Polish notation (RPN): enter values first, then choose an operation.
+A desktop calculator built with Java Swing and the Model-View-Controller (MVC) pattern. It uses reverse Polish notation (RPN): enter a value, push it onto the stack, enter the next value, and then select an operation.
+
+## Requirements
+
+- Java Development Kit (JDK) 8 or newer
+- Windows PowerShell, if you use the commands below
+- Visual Studio Code with the Extension Pack for Java, if you want to run or debug the project from the editor
+
+The project has no external runtime dependencies. The `lib` directory is reserved for optional JAR files managed by Visual Studio Code.
 
 ## Run the application
 
-Open the project in Visual Studio Code and run `src/App.java`, or compile and run it from PowerShell:
+### From PowerShell
+
+Run these commands from the project root:
 
 ```powershell
 javac -d bin -cp src (Get-ChildItem -Recurse -Filter *.java src).FullName
 java -cp bin App
 ```
 
-## Use the calculator
+The first command compiles every Java source file under `src` into `bin`. The second command starts the application from the `App` entry point.
+
+### From Visual Studio Code
+
+1. Open the project root folder in Visual Studio Code.
+2. Open `src/App.java`.
+3. Select **Run** above the `main` method, or use **Run and Debug**.
+
+The project configuration in `.vscode/settings.json` defines `src` as the source directory and `bin` as the compilation output directory.
+
+## How to use the calculator
+
+The accumulator is the value currently being entered or displayed. Values pushed with **ENTER** are stored on the operand stack. Binary operations consume operands from the stack and place the result in the accumulator.
 
 For example, to calculate `3 - 1`:
 
-1. Enter `3` and press **ENTER**.
-2. Enter `1`.
-3. Press **−**. The accumulator displays `2`.
+1. Enter `3`.
+2. Press **ENTER** to push `3` onto the stack.
+3. Enter `1`.
+4. Press **−**. The accumulator displays `2`.
 
-The display contains the accumulator and the four newest values on the stack. **STACK 1 (TOP)** is the next stack value used by an operation. Older values remain in the model even when they are outside the four visible slots.
+The interface displays the accumulator and the four newest stack values. **STACK 1 (TOP)** is the next stack value used by an operation. Older values remain in the model even when they are outside the four visible slots.
 
-The stack controls are **ENTER** (push), **POP**, **DROP**, **SWAP**, and **DROP ALL**. **AC** clears the accumulator; **C** clears both the accumulator and the stack. Keyboard shortcuts are available for digits, decimal separator, arithmetic, **ENTER**, backspace, **AC**, and **C**.
+## Controls
+
+| Control | Action |
+| --- | --- |
+| `0`-`9` | Enter a digit |
+| `,` | Enter a decimal separator |
+| `⌫` | Delete the last entered digit |
+| `ENTER` | Push the accumulator onto the stack |
+| `POP` | Move the top stack value to the accumulator |
+| `DROP` | Remove the top stack value |
+| `DROP ALL` | Clear the stack |
+| `SWAP` | Exchange the top two stack values |
+| `AC` | Clear the accumulator |
+| `C` | Clear the accumulator and the stack |
+| `±` | Change the sign of the accumulator |
+| `+`, `−`, `×`, `÷` | Apply an arithmetic operation |
+
+The same actions are available from the keyboard:
+
+| Key | Action |
+| --- | --- |
+| `0`-`9` | Enter a digit |
+| `,` or `.` | Enter a decimal separator |
+| `+`, `-`, `*`, `/` | Add, subtract, multiply, or divide |
+| `Enter` | Push the accumulator |
+| `Backspace` | Delete the last entered digit |
+| `Delete` | Clear the accumulator |
+| `Escape` | Clear the accumulator and the stack |
+
+## Validation and errors
+
+- A number can contain at most 18 entered characters.
+- Decimal values are displayed with a comma; both `,` and `.` are accepted from the keyboard.
+- Operations that require more operands than are available report an error without discarding the existing operands.
+- Division by zero and non-finite results are rejected.
+- The status message below the controls reports successful operations and errors.
+
+## Architecture
+
+- **Model** (`src/model`): stores the accumulator and operand stack, validates operands, and performs arithmetic operations.
+- **View** (`src/view`): builds the Swing window, displays calculator state, and translates button or keyboard input into commands.
+- **Controller** (`src/controller`): coordinates the view and model, manages number entry, formats values, and presents status messages.
+- **Application entry point** (`src/App.java`): creates the MVC components on the Swing event dispatch thread and displays the window.
 
 ## Project structure
 
-- `src/model`: calculator state and RPN operations
-- `src/controller`: input handling and model-to-view updates
-- `src/view`: Swing interface
-- `src/App.java`: application entry point
+```text
+src/
+├── App.java
+├── controller/
+│   ├── CalculatorController.java
+│   └── CalculatorControllerInterface.java
+├── model/
+│   ├── CalculatorModel.java
+│   └── CalculatorModelInterface.java
+└── view/
+	└── CalculatorView.java
+bin/     Compiled .class files generated by javac or Visual Studio Code
+lib/     Optional external JAR dependencies
+```
 
-Compiled `.class` files are generated in `bin` and are not source files.
+Generated `.class` files in `bin` are build output and are not source files.
+
+## Clean rebuild
+
+To remove compiled output and compile from scratch in PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force bin\*
+javac -d bin -cp src (Get-ChildItem -Recurse -Filter *.java src).FullName
+```
