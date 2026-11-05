@@ -112,6 +112,21 @@ classDiagram
 
     class CalculatorModelInterface {
         <<interface>>
+        +setController(CalculatorControllerInterface controller)
+        +setAccumulator(double value)
+        +getAccumulator() double
+        +getStackData() List~Double~
+        +push()
+        +pop()
+        +clear()
+        +drop()
+        +dropAll()
+        +swap()
+        +add()
+        +subtract()
+        +multiply()
+        +divide()
+        +opposite()
     }
 
     class CalculatorControllerInterface {
@@ -119,7 +134,7 @@ classDiagram
         +change(double accumulator, List~Double~ stackData)
     }
 
-    class Listener {
+    class CalculatorViewListener {
         <<interface>>
         +onDigit(String digit)
         +onDecimalSeparator()
@@ -133,7 +148,7 @@ classDiagram
     CalculatorController --> CalculatorModelInterface : commands
     CalculatorModel ..|> CalculatorModelInterface
     CalculatorController ..|> CalculatorControllerInterface
-    CalculatorController ..|> Listener
+    CalculatorController ..|> CalculatorViewListener
     CalculatorModel --> CalculatorControllerInterface : notifies
 ```
 
@@ -143,18 +158,23 @@ classDiagram
 stateDiagram-v2
     [*] --> Ready
 
-    Ready --> EnteringNumber: Press digit
+    Ready --> EnteringNumber: Press digit or decimal separator
     EnteringNumber --> EnteringNumber: Press digit or decimal separator
 
-    EnteringNumber --> StackUpdated: Press ENTER
-    StackUpdated --> Ready: Accumulator reset
+    EnteringNumber --> Ready: Press ENTER
+    Ready --> Ready: Press ENTER
 
-    EnteringNumber --> OperationCompleted: Press arithmetic operation
-    StackUpdated --> OperationCompleted: Operation has enough operands
-
-    OperationCompleted --> EnteringNumber: Press digit
+    EnteringNumber --> OperationCompleted: Valid arithmetic operation
+    Ready --> OperationCompleted: Valid arithmetic operation
+    OperationCompleted --> EnteringNumber: Press digit or decimal separator
     OperationCompleted --> Ready: Press ENTER
-    OperationCompleted --> OperationCompleted: Press another operation
+    OperationCompleted --> OperationCompleted: Valid arithmetic operation
+
+    EnteringNumber --> Error: Missing operand or division by zero
+    Ready --> Error: Missing operand or division by zero
+    OperationCompleted --> Error: Missing operand or division by zero
+    Error --> EnteringNumber: Press digit or decimal separator
+    Error --> Ready: Press AC
 
     Ready --> AccumulatorCleared: Press AC
     EnteringNumber --> AccumulatorCleared: Press AC
@@ -165,11 +185,6 @@ stateDiagram-v2
     EnteringNumber --> CalculatorCleared: Press C
     OperationCompleted --> CalculatorCleared: Press C
     CalculatorCleared --> Ready
-
-    StackUpdated --> Error: Not enough operands
-    EnteringNumber --> Error: Invalid or too-long input
-    OperationCompleted --> Error: Division by zero
-    Error --> Ready: User continues
 ```
 
 ## 5. Stack and Accumulator Flow
