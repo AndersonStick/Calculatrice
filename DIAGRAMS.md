@@ -21,6 +21,10 @@ flowchart LR
 
 ## 2. Sequence Diagram: `3 ENTER 1 -`
 
+This diagram shows the accumulator-assisted path implemented by the project. The strict two-push RPN sequence from the assignment is `3 ENTER 1 ENTER -`.
+
+The sequence is a behavioral summary. In the implementation, each Model mutation calls `change` immediately, and the Controller may refresh the View again after the command completes.
+
 ```mermaid
 sequenceDiagram
     actor User
@@ -76,14 +80,36 @@ classDiagram
         -JTextField accumulatorDisplay
         -JTextField[] stackDisplays
         -JLabel statusLabel
-        +setListener(Listener listener)
+        +setListener(CalculatorView.Listener listener)
         +showState(String accumulator, List~Double~ stackData, String message, boolean error)
+    }
+
+    class JFrame {
+        <<Swing class>>
+    }
+
+    class CalculatorView_Command {
+        <<enumeration>>
+        PUSH
+        POP
+        DROP
+        DROP_ALL
+        SWAP
+        CLEAR_ACCUMULATOR
+        CLEAR_ALL
+        BACKSPACE
+        OPPOSITE
+        ADD
+        SUBTRACT
+        MULTIPLY
+        DIVIDE
     }
 
     class CalculatorController {
         -CalculatorView view
         -CalculatorModelInterface model
         -String inputBuffer
+        -String message
         -boolean entryActive
         -boolean error
         +onDigit(String digit)
@@ -96,10 +122,12 @@ classDiagram
         -Deque~Double~ stack
         -double accumulator
         -boolean accumulatorFilled
+        -CalculatorControllerInterface controller
         +setAccumulator(double value)
         +getAccumulator() double
         +push()
         +pop()
+        +clear()
         +drop()
         +dropAll()
         +swap()
@@ -134,7 +162,7 @@ classDiagram
         +change(double accumulator, List~Double~ stackData)
     }
 
-    class CalculatorViewListener {
+    class CalculatorView_Listener {
         <<interface>>
         +onDigit(String digit)
         +onDecimalSeparator()
@@ -144,15 +172,20 @@ classDiagram
     App --> CalculatorView : creates
     App --> CalculatorModel : creates
     App --> CalculatorController : connects
+    CalculatorView --|> JFrame : extends
+    CalculatorView ..> CalculatorView_Command : defines
     CalculatorController --> CalculatorView : updates
+    CalculatorView ..> CalculatorView_Listener : accepts listener
     CalculatorController --> CalculatorModelInterface : commands
     CalculatorModel ..|> CalculatorModelInterface
     CalculatorController ..|> CalculatorControllerInterface
-    CalculatorController ..|> CalculatorViewListener
+    CalculatorController ..|> CalculatorView_Listener
     CalculatorModel --> CalculatorControllerInterface : notifies
 ```
 
 ## 4. Calculator State Diagram
+
+This is a high-level diagram of the main numeric-entry flow. Commands such as `POP`, `DROP`, `DROP ALL`, `SWAP`, `AC`, `C`, and `±` are handled by the controller but are not represented as separate states.
 
 ```mermaid
 stateDiagram-v2
